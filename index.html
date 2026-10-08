@@ -3,11 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pelota que rebota</title>
-        <script src="https://cdn.jsdelivr.net/npm/p5@2.3.4/lib/p5.js"></script>
-        <script src="sketch.js"></script>
+    <title>Pelotita Loca</title>
+    <link rel="icon" href="data:,">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        /* El canvas ocupa toda la ventana, sin espacios ni scroll. */
+        canvas {
+            display: block;
+        }
+        /* El título flota encima del canvas, centrado, sin robar los clics. */
+        h1 {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            margin: 0;
+            color: #ffffff;
+            font-family: sans-serif;
+            text-align: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/p5@2.3.4/lib/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5.sound@0.4.1/dist/p5.sound.min.js"></script>
+    <script src="sketch.js"></script>
 </head>
 <body>
-    <H1>Pelota que rebota</H1>
-
+    <h1>Pelotita Loca</h1>
 </body>
+</html>
