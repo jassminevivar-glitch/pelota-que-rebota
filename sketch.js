@@ -8,8 +8,8 @@ Este código hace que la pelota:
    cada vez que rebota
  - emita un sonido cada vez que rebota
    (usando la librería p5.sound.js)
- - explote como una burbuja cuando el cursor la toca
-   (suelta gotas que se desvanecen y luego reaparece en otro lugar)
+ - explote al presionar el botón del mouse, soltando varias pelotitas
+   que permanecen 10 segundos y luego desaparecen
  - genere un sistema de partículas desde la posición del mouse,
    con tiempo de vida y desvanecimiento
 */
@@ -18,10 +18,11 @@ let posX, posY;
 let velX, velY;
 let radio = 25;
 
-// Estado de la explosión "burbuja".
+// Estado de la explosión: al presionar el mouse salen pelotitas por 10 segundos.
 let explotada = false;
-let particulas = [];        // gotas que salen al explotar
-let tiempoExplosion = 0;
+let pelotitas = [];
+let tiempoInicioExplosion = 0;
+const DURACION_PELOTITAS = 10000;  // milisegundos (10 segundos)
 
 // Sistema de partículas que nace en la posición del mouse.
 let chispas = [];
@@ -62,16 +63,10 @@ function draw() {
   dibujarPatron();
 
   if (explotada) {
-    actualizarParticulas();
+    actualizarPelotitas();
   } else {
     dibujarPelota();
-
-    // Si el cursor toca la pelota, explota como una burbuja.
-    if (dist(mouseX, mouseY, posX, posY) < radio) {
-      explotar();
-    } else {
-      moverPelota();
-    }
+    moverPelota();
   }
 
   // Sistema de partículas del mouse.
@@ -109,59 +104,54 @@ function moverPelota() {
   }
 }
 
-// Hace explotar la pelota como una burbuja: crea las gotas y suena el "pop".
+// Hace explotar la pelota: al presionar el mouse suelta varias pelotitas.
 function explotar() {
   explotada = true;
-  tiempoExplosion = 0;
-  particulas = [];
+  tiempoInicioExplosion = millis();
+  pelotitas = [];
 
-  const cantidad = 18;
+  const cantidad = 9;
   for (let i = 0; i < cantidad; i++) {
-    const angulo = (TWO_PI / cantidad) * i + random(-0.2, 0.2);
-    const rapidez = random(2, 7);
-    particulas.push({
+    const angulo = (TWO_PI / cantidad) * i + random(-0.3, 0.3);
+    const rapidez = random(3, 9);
+    pelotitas.push({
       x: posX,
       y: posY,
       vx: cos(angulo) * rapidez,
       vy: sin(angulo) * rapidez - random(0, 2),
-      tam: random(4, 12),
-      vida: 1,
-      color: colorPelota
+      radio: radio * random(0.35, 0.6),
+      color: color(random(255), random(255), random(255))
     });
   }
 
   sonarPop();
 }
 
-// Anima y dibuja las gotas de la explosión; cuando terminan, reaparece la pelota.
-function actualizarParticulas() {
-  tiempoExplosion++;
-  noStroke();
-
-  for (let i = particulas.length - 1; i >= 0; i--) {
-    const p = particulas[i];
-    p.vy += 0.15;          // gravedad suave
-    p.x += p.vx;
-    p.y += p.vy;
-    p.vx *= 0.99;
-    p.vida -= 0.02;
-
-    if (p.vida <= 0) {
-      particulas.splice(i, 1);
-      continue;
-    }
-
-    const alfa = p.vida * 255;
-    fill(red(p.color), green(p.color), blue(p.color), alfa);
-    circle(p.x, p.y, p.tam * p.vida);
-
-    // Pequeño brillo de cristal en cada gota.
-    fill(255, 255, 255, alfa * 0.7);
-    circle(p.x - p.tam * 0.15, p.y - p.tam * 0.2, p.tam * 0.3 * p.vida);
+// Mueve/dibuja las pelotitas y las retira al cumplirse los 10 segundos.
+function actualizarPelotitas() {
+  // Pasado el tiempo de vida, desaparecen y vuelve la pelota principal.
+  if (millis() - tiempoInicioExplosion >= DURACION_PELOTITAS) {
+    pelotitas = [];
+    reaparecer();
+    return;
   }
 
-  if (particulas.length === 0 && tiempoExplosion > 15) {
-    reaparecer();
+  for (const b of pelotitas) {
+    b.vy += 0.2;            // gravedad
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // Rebote en los bordes (sin sonido).
+    if (b.x < b.radio || b.x > width - b.radio) {
+      b.vx *= -0.9;
+      b.x = constrain(b.x, b.radio, width - b.radio);
+    }
+    if (b.y < b.radio || b.y > height - b.radio) {
+      b.vy *= -0.9;
+      b.y = constrain(b.y, b.radio, height - b.radio);
+    }
+
+    dibujarCristal(b.x, b.y, b.radio, b.color);
   }
 }
 
@@ -249,24 +239,28 @@ function actualizarChispas() {
   }
 }
 
-// Dibuja la pelota con un efecto de cristal (translúcido + reflejos).
+// Dibuja la pelota principal.
 function dibujarPelota() {
-  const d = radio * 2;
+  dibujarCristal(posX, posY, radio, colorPelota);
+}
+
+// Dibuja un círculo con efecto de cristal (translúcido + reflejos) en x, y.
+function dibujarCristal(x, y, r, col) {
   const ctx = drawingContext;
 
-  // Cuerpo de cristal: gradiente radial con el color actual, semitransparente
-  // para que se vea el patrón de fondo a través de la pelota.
+  // Cuerpo de cristal: gradiente radial con el color dado, semitransparente
+  // para que se vea el patrón de fondo a través.
   const grad = ctx.createRadialGradient(
-    posX - radio * 0.35, posY - radio * 0.35, radio * 0.1,  // foco de luz
-    posX, posY, radio
+    x - r * 0.35, y - r * 0.35, r * 0.1,  // foco de luz
+    x, y, r
   );
-  const r = red(colorPelota), g = green(colorPelota), b = blue(colorPelota);
-  grad.addColorStop(0, "rgba(" + r + "," + g + "," + b + ",0.30)");
-  grad.addColorStop(0.6, "rgba(" + r + "," + g + "," + b + ",0.55)");
-  grad.addColorStop(1, "rgba(" + r + "," + g + "," + b + ",0.85)");
+  const cr = red(col), cg = green(col), cb = blue(col);
+  grad.addColorStop(0, "rgba(" + cr + "," + cg + "," + cb + ",0.30)");
+  grad.addColorStop(0.6, "rgba(" + cr + "," + cg + "," + cb + ",0.55)");
+  grad.addColorStop(1, "rgba(" + cr + "," + cg + "," + cb + ",0.85)");
 
   ctx.beginPath();
-  ctx.arc(posX, posY, radio, 0, Math.PI * 2);
+  ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fillStyle = grad;
   ctx.fill();
 
@@ -274,16 +268,16 @@ function dibujarPelota() {
   noFill();
   stroke(255, 255, 255, 150);
   strokeWeight(2);
-  circle(posX, posY, d);
+  circle(x, y, r * 2);
 
   // Brillo especular principal (arriba a la izquierda).
   noStroke();
   fill(255, 255, 255, 220);
-  ellipse(posX - radio * 0.35, posY - radio * 0.4, radio * 0.55, radio * 0.35);
+  ellipse(x - r * 0.35, y - r * 0.4, r * 0.55, r * 0.35);
 
   // Reflejo secundario (abajo a la derecha).
   fill(255, 255, 255, 90);
-  ellipse(posX + radio * 0.32, posY + radio * 0.35, radio * 0.4, radio * 0.22);
+  ellipse(x + r * 0.32, y + r * 0.35, r * 0.4, r * 0.22);
 }
 
 function rebotar(eje) {
@@ -409,14 +403,19 @@ function sonarPop() {
 // El navegador pide un gesto del usuario para poder reproducir audio.
 // Reanudamos el AudioContext con este clic y, recién entonces, arrancamos el oscilador.
 function mousePressed() {
-  if (audioListo || audioIniciando) {
-    return;
+  // Activar el audio (solo la primera vez).
+  if (!audioListo && !audioIniciando) {
+    audioIniciando = true;
+    getAudioContext().resume().then(() => {
+      osc.start();
+      audioListo = true;
+    });
   }
-  audioIniciando = true;
-  getAudioContext().resume().then(() => {
-    osc.start();
-    audioListo = true;
-  });
+
+  // Presionar el botón hace explotar la pelota.
+  if (!explotada) {
+    explotar();
+  }
 }
 
 // Mantener el lienzo del tamaño de la ventana.

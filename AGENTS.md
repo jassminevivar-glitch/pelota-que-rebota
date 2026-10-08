@@ -30,10 +30,12 @@ build, test, lint, or CI — do not look for npm/build scripts.
   saturated: high red, variable green, low blue) over a vivid terracotta
   background.
 - Each bounce triggers a short tone (`p5.Oscillator` + `p5.Envelope`).
-- When the cursor touches the ball it does **not** pause: it pops like a bubble.
-  `explotar()` spawns `particulas` (droplets) that fly out, fall and fade in
-  `actualizarParticulas()`; once they are gone, `reaparecer()` respawns the ball
-  at a random spot away from the cursor with a new color and pattern.
+- Pressing the mouse button (`mousePressed`) makes the ball explode into several
+  small glass balls. `explotar()` fills `pelotitas`; `actualizarPelotitas()`
+  moves them (gravity + wall bounces) and, after `DURACION_PELOTITAS` (10 s,
+  measured with `millis()`), clears them and calls `reaparecer()` to respawn the
+  main ball at a random spot away from the cursor. The main ball and the small
+  balls are both drawn by the shared `dibujarCristal(x, y, r, col)` helper.
 - A separate mouse particle system (`Chispa` class + `chispas` array) emits
   particles from the cursor in `emitirChispas()` and ages them in
   `actualizarChispas()`. Each particle has a random lifetime (50-90 frames) and
